@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Word Imposter Online</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: Arial; text-align: center; margin: 50px; background-color: #1c1c1c; color: white; }
+    input, button { padding: 10px; margin: 5px; font-size: 16px; }
+    #wordDisplay { margin-top: 20px; font-size: 24px; font-weight: bold; }
+    .category { font-size: 16px; color: #aaa; margin-bottom: 5px; }
+    .imposterReveal { color: #ff5555; font-size: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<h1>Word Imposter Online</h1>
+
+<div id="joinDiv">
+  <input type="text" id="nameInput" placeholder="Your name">
+  <button onclick="joinGame()">Join Game</button>
+  <div id="playerList"></div>
+  <button onclick="startGame()">Start Game</button>
+</div>
+
+<div id="gameDiv" style="display:none;">
+  <h2 id="playerTurn">Waiting...</h2>
+  <div id="wordDisplay"></div>
+  <button onclick="nextPlayer()">Next Player</button>
+</div>
+
+<script>
+const socket = io();
+let playerName = "";
+
+function joinGame() {
+  playerName = document.getElementById("nameInput").value.trim() || "Player";
+  socket.emit("joinGame", playerName);
+}
+
+socket.on("playerList", (players) => {
+  document.getElementById("playerList").innerText = "Players: " + players.join(", ");
+});
+
+function startGame() {
+  socket.emit("startGame");
+}
+
+socket.on("gameStarted", (numPlayers) => {
+  document.getElementById("joinDiv").style.display = "none";
+  document.getElementById("gameDiv").style.display = "block";
+});
+
+socket.on("yourTurn", (data) => {
+  document.getElementById("playerTurn").innerText = "It's your turn!";
+  document.getElementById("wordDisplay").innerHTML = `<div class="category">Category: ${data.category}</div><div>${data.role === "IMPOSTER" ? "😈 You are the IMPOSTER!" : "🛠 " + data.role}</div>`;
+});
+
+function nextPlayer() {
+  document.getElementById("wordDisplay").innerHTML = "";
+  document.getElementById("playerTurn").innerText = "Waiting for next turn...";
+  socket.emit("nextPlayer");
+}
+
+socket.on("gameOver", (imposterName) => {
+  document.getElementById("playerTurn").innerText = "Game Over!";
+  document.getElementById("wordDisplay").innerHTML = `<div class="imposterReveal">The Imposter was: ${imposterName}</div>`;
+});
+</script>
+
+</body>
+</html>
